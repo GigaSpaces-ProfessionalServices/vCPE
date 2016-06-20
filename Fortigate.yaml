@@ -148,17 +148,6 @@ node_templates:
       - target: lan_network
         type: cloudify.relationships.contained_in
 
-#  lan_network_port:
-#    type: cloudify.openstack.nodes.Port
-#    properties:
-#      use_external_resource : false
-#      fixed_ip: 162.10.0.5
-#    relationships:
-#      - type: cloudify.relationships.contained_in
-#        target: lan_network
-#      - type: cloudify.relationships.depends_on
-#        target: lan_network_subnet
-
   server_float_ip:
     type: cloudify.openstack.nodes.FloatingIP
     properties:
@@ -168,22 +157,21 @@ node_templates:
 
 workflows:
 
-  fw_add_service:
+  add_fw_service:
     mapping: fortigate.plugin.tasks.create_service
     parameters:
       username:
         default: { }
       password:
         default: { }
-      serviceName:
-        default: { }
       protocol:
         default: { }
       portrange:
         default: { }
+      serviceName:
+        default: { }
 
-
-  fw_add_policy:
+  add_fw_policy:
     mapping: fortigate.plugin.tasks.create_policy
     parameters:
       username:

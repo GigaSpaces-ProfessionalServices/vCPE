@@ -1,15 +1,9 @@
-from cloudify.decorators import operation
-#from cloudify import ctx
-from cloudify.state import ctx_parameters as inputs
-import paramiko
 from cloudify.workflows import ctx
 from cloudify.decorators import workflow
+import paramiko
 
 
-def exec_command(ctx, command):
-
-    username = inputs['username']
-    password = inputs['password']
+def exec_command(username,password, command):
 
     fortigate_host_ip = ctx.instance.host_ip
     ctx.logger.info('HOST_IP: {0}'.format(ctx.instance.host_ip))
@@ -25,51 +19,12 @@ def exec_command(ctx, command):
 
 
 
-## Loop over relationships with 'connected_to_port' and assign the fixed ip to the relevant port
-## the order of the port a based on the relationships order
-
-@operation
-def config_ports(ctx, **kwargs):
-
-    ctx.logger.info('Start port config task....')
-    portId = 2  # port 1 reserved for admin
-    portMask = '255.255.255.0'
-
-    for relationship in ctx.instance.relationships:
-
-        ctx.logger.info('RELATIONSHIP type : {0}'.format(relationship.type))
-
-        if 'connected_to_port' in relationship.type:
-            target_ip = relationship.target.instance.runtime_properties['fixed_ip_address']
-            ctx.logger.info('TARGET IP target_ip : {0}'.format(target_ip))
-
-            command = \
-                'config system interface\n' \
-                '  edit port%s\n' \
-                '    set mode static\n' \
-                '    set ip %s %s\n' \
-                'end' % (portId, target_ip, portMask)
-
-            exec_command(ctx, command)
-
-            portId += 1
-
-        if 'connected_to' in relationship.type:
-
-            portId += 1
-
-
 @workflow
-def create_policy(ctx, **kwargs):
+def create_policy(username, password, policyId, policyName, srcintf, dstintf, action, serviceName, **kwargs):
 
     ctx.logger.info('Start FW policy configuration....')
 
-    policyId = inputs['policyId']
-    policyName = inputs['policyName']
-    srcintf = inputs['srcintf']
-    dstintf = inputs['dstintf']
-    action = inputs['action']
-    serviceName = inputs['serviceName']
+    ctx.logger.info('HOST_IP: {0}'.format(ctx.instance.host_ip))
 
     command = \
         'config firewall policy\n' \
@@ -86,18 +41,14 @@ def create_policy(ctx, **kwargs):
 
     ctx.logger.info('Execute Command >> \n {0}'.format(command))
 
-#    exec_command(ctx, command)
+#    exec_command(username,password,command)
 
 
 @workflow
-#@operation
-def create_service(ctx, **kwargs):
+def create_service(username, password, protocol, portrange, serviceName, **kwargs):
 
     ctx.logger.info('Start FW service creation....')
-
-    protocol = inputs['protocol']
-    portrange = inputs['portrange']
-    serviceName = inputs['serviceName']
+    ctx.logger.info('HOST_IP: {0}'.format(ctx.instance.host_ip))
 
     command = \
         'config firewall service custom\n' \
@@ -108,5 +59,5 @@ def create_service(ctx, **kwargs):
 
     ctx.logger.info('Execute Command >> \n {0}'.format(command))
 
-    exec_command(ctx, command)
+#    exec_command(username,password,command)
 
