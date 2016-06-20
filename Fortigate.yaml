@@ -88,26 +88,38 @@ inputs:
     type: string
     default: '100-150'
 
+node_types:
+
+  ###########################################################
+  # We define a type that inherits openstack's default
+  # server, and adds monitoring capabillities on top of it.
+  ###########################################################
+
+  firewallHost:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      install_agent:
+        default: false
+      server:
+        default:
+            image: { get_input: Fortigate_image }
+            flavor: { get_input: flavor }
+            name: Fortigate-Server
 
 node_templates:
 
-  Fortigate:
-    type: cloudify.openstack.nodes.Server
-    properties:
-      install_agent: false
-      server:
-         image: { get_input: Fortigate_image }
-         flavor: { get_input: flavor }
-         name: Fortigate-Server
-    relationships:
 
+  Fortigate:
+    type: firewallHost
+    properties:
+    relationships:
       - target: provider_network
         type: cloudify.relationships.connected_to
       - target: lan_network
         type: cloudify.relationships.connected_to
       - target: Fortigate.config
         type: cloudify.relationships.depends_on
-      - target: server_float_ip
+      - target: fortigate_ip
         type: cloudify.openstack.server_connected_to_floating_ip
 
 
@@ -148,7 +160,7 @@ node_templates:
       - target: lan_network
         type: cloudify.relationships.contained_in
 
-  server_float_ip:
+  fortigate_ip:
     type: cloudify.openstack.nodes.FloatingIP
     properties:
       floatingip:
@@ -190,3 +202,11 @@ workflows:
         default: { }
       serviceName:
         default: { }
+
+
+outputs:
+  endpoint:
+    description: My application endpoint
+    value:
+      fw_public_ip: { get_attribute: [ Fortigate, fortigate_ip ] }
+      ip_address: { get_attribute: [ Fortigate, ip ] }

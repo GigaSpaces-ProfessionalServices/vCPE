@@ -24,7 +24,10 @@ def create_policy(username, password, policyId, policyName, srcintf, dstintf, ac
 
     ctx.logger.info('Start FW policy configuration....')
 
-    ctx.logger.info('HOST_IP: {0}'.format(ctx.instance.host_ip))
+    for node in ctx.nodes:
+        ctx.logger.info("node.id {0}".format(node.id))
+        if node.id == 'Fortigate':
+            ctx.logger.info('HOST_IP: {0}'.format(ctx.node.ip))
 
     command = \
         'config firewall policy\n' \
@@ -48,7 +51,11 @@ def create_policy(username, password, policyId, policyName, srcintf, dstintf, ac
 def create_service(username, password, protocol, portrange, serviceName, **kwargs):
 
     ctx.logger.info('Start FW service creation....')
-    ctx.logger.info('HOST_IP: {0}'.format(ctx.instance.host_ip))
+
+    for node in ctx.nodes:
+        ctx.logger.info("node.id {0}".format(node.id))
+        if node.id == 'Fortigate':
+            ctx.logger.info('HOST_IP: {0}'.format(ctx.node_ip))
 
     command = \
         'config firewall service custom\n' \
