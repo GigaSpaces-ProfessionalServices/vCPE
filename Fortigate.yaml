@@ -6,8 +6,6 @@ imports:
   - http://www.getcloudify.org/spec/fabric-plugin/1.4/plugin.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.3.1/plugin.yaml
   - http://www.getcloudify.org/spec/diamond-plugin/1.3.2/plugin.yaml
-
-  - types/fortigate-types.yaml
   - plugins/cloudify-fortigate-plugin/plugin.yaml
 
 
@@ -23,7 +21,7 @@ inputs:
   fortigate_password:
     default: ' '
 
-  Fortigate_image:
+  fortigate_image:
 #    default: '8b8fa98d-19dd-4393-b886-c430b17a7465'
     default: '45972b85-fff4-496b-800f-6b66310e0913'
 #   default: 'Fortigate_Image'
@@ -90,46 +88,40 @@ inputs:
 
 node_types:
 
-  ###########################################################
-  # We define a type that inherits openstack's default
-  # server, and adds monitoring capabillities on top of it.
-  ###########################################################
-
-  firewallHost:
+   firewall:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       install_agent:
         default: false
       server:
         default:
-            image: { get_input: Fortigate_image }
+            image: { get_input: fortigate_image }
             flavor: { get_input: flavor }
             name: Fortigate-Server
 
 node_templates:
 
 
-  Fortigate:
-    type: firewallHost
-    properties:
+  fortigate:
+    type: firewall
     relationships:
       - target: provider_network
         type: cloudify.relationships.connected_to
       - target: lan_network
         type: cloudify.relationships.connected_to
-      - target: Fortigate.config
-        type: cloudify.relationships.depends_on
       - target: fortigate_ip
         type: cloudify.openstack.server_connected_to_floating_ip
 
 
-  Fortigate.config:
+  fortigate.network.config:
     type: cloudify.nodes.Compute
     properties:
       install_agent: false
     relationships:
       - target: lan_network
-        type: cloudify.relationships.connected_to
+        type: cloudify.relationships.depends_on
+      - target: fortigate
+        type: cloudify.relationships.contained_in
 
 
 
@@ -159,6 +151,7 @@ node_templates:
     relationships:
       - target: lan_network
         type: cloudify.relationships.contained_in
+
 
   fortigate_ip:
     type: cloudify.openstack.nodes.FloatingIP
@@ -205,8 +198,10 @@ workflows:
 
 
 outputs:
-  endpoint:
-    description: My application endpoint
+  public_endpoint:
     value:
-      fw_public_ip: { get_attribute: [ Fortigate, fortigate_ip ] }
-      ip_address: { get_attribute: [ Fortigate, ip ] }
+      fw_public_ip: { get_attribute: [ fortigate_ip, floating_ip_address ] }
+
+  private_endpoint:
+    value:
+      ip_address: { get_attribute: [ fortigate, ip ] }

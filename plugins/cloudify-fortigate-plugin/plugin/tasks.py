@@ -26,8 +26,13 @@ def create_policy(username, password, policyId, policyName, srcintf, dstintf, ac
 
     for node in ctx.nodes:
         ctx.logger.info("node.id {0}".format(node.id))
-        if node.id == 'Fortigate':
-            ctx.logger.info('HOST_IP: {0}'.format(ctx.node.ip))
+
+        # if node.id == 'Fortigate':
+            # instance_node = ctx.get_node_instance(node.id)
+            # ctx.logger.info('instance_node >>>> : {0}'.format(instance_node))
+            #instance_node_host = ctx.get_node_instance(instance_node._node_instance.host_id)
+#           for instance in node.instances:
+            #ctx.logger.info('HOST_IP: {0}'.format(instance_node_host))
 
     command = \
         'config firewall policy\n' \
@@ -54,8 +59,13 @@ def create_service(username, password, protocol, portrange, serviceName, **kwarg
 
     for node in ctx.nodes:
         ctx.logger.info("node.id {0}".format(node.id))
-        if node.id == 'Fortigate':
-            ctx.logger.info('HOST_IP: {0}'.format(ctx.node_ip))
+        # if node.id == 'Fortigate':
+        # if node.id == 'fortigate_ip':
+        #     instance_node = ctx.get_node_instance(node.id)
+        #     ctx.logger.info('instance_node: {0}'.format(instance_node))
+#            instance_node_host = ctx.get_node_instance(instance_node._node_instance.host_id)
+#            for instance in node.instances:
+#            ctx.logger.info('HOST_IP: {0}'.format(instance_node_host))
 
     command = \
         'config firewall service custom\n' \
