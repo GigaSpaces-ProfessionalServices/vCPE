@@ -6,7 +6,7 @@ imports:
   - http://www.getcloudify.org/spec/fabric-plugin/1.4/plugin.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.3.1/plugin.yaml
   - http://www.getcloudify.org/spec/diamond-plugin/1.3.2/plugin.yaml
-  - plugins/cloudify-fortigate-plugin/plugin.yaml
+  - plugins/cloudify-fortinet-plugin/plugin.yaml
 
 
 inputs:
@@ -22,14 +22,10 @@ inputs:
     default: ' '
 
   fortigate_image:
-#    default: '8b8fa98d-19dd-4393-b886-c430b17a7465'
-    default: '45972b85-fff4-496b-800f-6b66310e0913'
-#   default: 'Fortigate_Image'
+    default: '793cf81a-024e-4c37-822d-f482dde2a760'
 
   flavor:
     default: '8e6069a3-d8c6-4741-8e0d-6373b2ca38cc'
-#   default: dc1.1x1.20
-
 
   external_network_name:
     type: string
@@ -37,7 +33,7 @@ inputs:
 
   providerNetwork:
     type: string
-    default: provider-network
+    default: privateExternal
 
   providerSubnet:
     type: string
@@ -45,11 +41,11 @@ inputs:
 
   lanNetwork:
     type: string
-    default: LanNetwork
+    default: privateLan
 
   lanSubnet:
     type: string
-    default: LanNetworkSubnet
+    default: privateLan-subnet
 
   policy_name:
     type: string
@@ -86,9 +82,15 @@ inputs:
     type: string
     default: '100-150'
 
+dsl_definitions:
+  ssh_config: &ssh_config
+    host_string: { get_attribute: [ fortigate_ip, floating_ip_address ] }
+    user: admin
+    password: ''
+
 node_types:
 
-   firewall:
+  firewall:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       install_agent:
@@ -100,7 +102,6 @@ node_types:
             name: Fortigate-Server
 
 node_templates:
-
 
   fortigate:
     type: firewall
@@ -124,34 +125,18 @@ node_templates:
         type: cloudify.relationships.contained_in
 
 
-
   provider_network:
     type: cloudify.openstack.nodes.Network
     properties:
-      resource_id: { get_input: provider_net_id } #provider-network
+      resource_id: { get_input: provider_net_id }
       use_external_resource : true
-
 
 
   lan_network:
     type: cloudify.openstack.nodes.Network
     properties:
       resource_id: { get_input: lanNetwork }
-      use_external_resource : false
-
-  lan_network_subnet:
-    type: cloudify.openstack.nodes.Subnet
-    properties:
-      resource_id: { get_input: lanSubnet }
-      use_external_resource : false
-      subnet:
-        ip_version: 4
-        cidr: 162.10.0.0/24
-        gateway_ip: 162.10.0.1
-    relationships:
-      - target: lan_network
-        type: cloudify.relationships.contained_in
-
+      use_external_resource : true
 
   fortigate_ip:
     type: cloudify.openstack.nodes.FloatingIP
@@ -160,41 +145,51 @@ node_templates:
         floating_network_name: { get_input: external_network_name }
 
 
-workflows:
+#workflows:
 
-  add_fw_service:
-    mapping: fortigate.plugin.tasks.create_service
-    parameters:
-      username:
-        default: { }
-      password:
-        default: { }
-      protocol:
-        default: { }
-      portrange:
-        default: { }
-      serviceName:
-        default: { }
+#  add_fw_policy:
+#    mapping: fortigate.plugin.tasks.create_policy
+#    parameters:
+#      config_id:
+#        default: { }
+#            config:
+#               name: { }
+#               srcintf: { }
+#               dstintf: { }
+#               srcaddr: { }
+#               dstaddr: { }
+#               action: { }
+#               schedule: { }
+#               service: { }
+#               nat: { }
+#            ssh_config: *ssh_config
 
-  add_fw_policy:
-    mapping: fortigate.plugin.tasks.create_policy
-    parameters:
-      username:
-        default: { }
-      password:
-        default: { }
-      policyId:
-        default: { }
-      policyName:
-        default: { }
-      srcintf:
-        default: { }
-      dstintf:
-        default: { }
-      action:
-        default: { }
-      serviceName:
-        default: { }
+
+  # Allow traffic to pass from LAN to WAN (outbound access)
+  # Enable NAT
+
+  fortigate_policy_enable_nat:
+    type: cloudify.Fortinet.FortiGate.Firewall.Policy
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_id: 2
+            config:
+            - name: Enable NAT
+            - srcintf: port3
+            - dstintf: port2
+            - srcaddr: all
+            - dstaddr: all
+            - action: accept
+            - schedule: always
+            - service: ALL
+            - nat: enable
+            ssh_config: *ssh_config
+    relationships:
+    - type: cloudify.relationships.contained_in
+      target: fortigate
+
 
 
 outputs:
